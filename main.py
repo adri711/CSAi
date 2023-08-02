@@ -7,8 +7,8 @@
 
 import keyboard, ctypes, pymem, time, pickle, os
 from constants import Addresses, Player
-from utility import Aimbot
-from PathFinder.utils import Visualiser
+from utility import Aimbot, calcDistance
+from PathFinder.utils import Visualiser, astar
 from controller import PlayerController
 from pynput.keyboard import Key, Controller
 import pygame
@@ -87,9 +87,10 @@ if __name__ == "__main__":
 					os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (50,50)
 					GUI = Visualiser(grid, (0,0), (0,0), 4, background)
 				else:
+					player_controller.controller.release(player_controller.move_key)
 					GUI.quit()
 					GUI = None
-				time.sleep(0.01)
+				#time.sleep(0.1)
 
 		except Exception as error:
 			print(error)
@@ -106,24 +107,26 @@ if __name__ == "__main__":
 				if not curr_player:
 					continue
 
-				isdormant = process.read_bool(curr_player + (0xED))
-
 				enemy = Player(curr_player, i, None, None, None)
 				enemy.get_player_info(process)
 
-				if curr_player == player_ptr or enemy.team == myteam or enemy.health <= 2 or isdormant:
+				if enemy.team == myteam or enemy.health <= 2:
 					continue
-				process.write_uchar(curr_player + Addresses.m_bSpotted, 1)
+
+				enemy.distance = calcDistance(player.position, enemy.position)
+
+				#process.write_uchar(curr_player + Addresses.m_bSpotted, 1)
 				players.append( enemy )
 
-
-			for enemy in players:
-				enemy.get_player_info(process)
+			print(players)
 
 			if players:
 				
 				Angle = Aimbot(player , players) # has to be up here because it does the enemies sorting by distance
+				
+				Angle = [0,270,0]
 
+				print('->te')
 				myPlayerLocation = getPlayerLocation(
 					player.position,
 					map_scale, 
@@ -137,24 +140,31 @@ if __name__ == "__main__":
 					x_pos, 
 					y_pos
 				)
-
+				print('nig')
 				start = getPlayerGridIndices(myPlayerLocation)
 				end= getPlayerGridIndices(enemyLocation)
+				print(start, end)
+				path = astar(grid, start, end)
+				print('fa')
 
-				GUI.update(grid, start, end)
+				GUI.update(grid, start, end, path)
 
 				player_controller.aimAt([0, 270,0])
 				player_controller.player_position = start
 
 
 				try:
-					player_controller.followPath(GUI.path[1])
+					player_controller.followPath(path[1])
+				except:
+					print(">>error")
+
+				try:
 					if players[0].distance <= 170.0:
+						Angle = [Angle[0]+6, Angle[1], Angle[2]]
 						player_controller.aimAt(Angle)
 						player_controller.shoot()
-
 				except:
-					pass
+					print('nigger')
 
 			else:
 				print(">> No playerrs to display")

@@ -44,12 +44,11 @@ class PlayerController:
 			else:
 				self.move_key = keys['up']
 
-		"""if self.old_key != self.move_key and self.old_key:
-			self.controller.release(self.old_key)"""
+		if self.old_key != self.move_key and self.old_key:
+			self.controller.release(self.old_key)
 		
 		self.controller.press(self.move_key)
-		time.sleep(0.256)
-		self.controller.release(self.move_key)
+
 
 
 	def aimAt(self, angle):
